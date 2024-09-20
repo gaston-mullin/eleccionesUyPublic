@@ -1,12 +1,8 @@
-senado = function(dataf,totalSeats = 30,partyNamesColumn = NULL,votesColumn = NULL,levels = NULL,invalidVotesRows = NULL,printGraph = F,saveGraph = F) {
+senado = function(dataf,totalSeats = 30,partyNamesColumn = 1,votesColumn = 2,levels = NULL,invalidVotesRows = NULL,printGraph = F,saveGraph = F) {
 
 	if (!is.data.frame(dataf)) {
 		warning("data argument is not data.frame. Passing to data.frame")
 		dataf = as.data.frame(dataf)
-	}
-	
-	if (is.null(partyNamesColumn)) {
-		partyNamesColumn = 1
 	}
 	
 	if (is.character(partyNamesColumn)) {
@@ -17,11 +13,6 @@ senado = function(dataf,totalSeats = 30,partyNamesColumn = NULL,votesColumn = NU
 		}
 	}
 		
-	
-	if (is.null(votesColumn)) {
-		votesColumn = 2
-	}
-	
 	if (is.character(votesColumn)) {
 		votesColumn = match(votesColumn,colnames(dataf))
 		if (is.na(votesColumn)) {
@@ -45,5 +36,7 @@ senado = function(dataf,totalSeats = 30,partyNamesColumn = NULL,votesColumn = NU
 	if (printGraph) {
 		barplot(seatsSenado,names = names(seatsSenado))
 	}
+	
+	return(seatsSenado)
 
 }
