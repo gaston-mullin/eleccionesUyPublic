@@ -108,6 +108,7 @@ diputados = function(dataf,totalSeats = 99,regionColumn,partyNamesColumn = 1,vot
 	r1DF = r1DF[order(r1DF$rowID,decreasing=F),]
 	r1DF$quotientR1 = r1DF$votesPartyDpto/r1DF$votesBySeatDpto
 
+	dataToUse$r1Seats = floor(r1DF$quotientR1)
 	dataToUse$immovableSeats = floor(r1DF$quotientR1)
 	dataToUse$assignedSeats = dataToUse$immovableSeats
 	seatsLeftToAssign = totalSeats -  sum(dataToUse$assignedSeats)
@@ -135,11 +136,14 @@ diputados = function(dataf,totalSeats = 99,regionColumn,partyNamesColumn = 1,vot
 		r2DF$divisorR2 = (r2DF$assignedSeats+1)
 		r2DF$quotientR2 = r2DF$votesPartyDpto/r2DF$divisorR2
 		r2DF = r2DF[order(r2DF$quotientR2,decreasing=T),]
+		r2DF$quotientSeats = 0
+
 	
 		while (any(r2DF$assignedSeatsByDpto<2)) {
 			rowAddSeat = min(which(with(r2DF,(assignedSeatsByDpto<2)&assignedSeatsByParty<overallPartySeats)))
 			r2DF$immovableSeats[rowAddSeat] = r2DF$immovableSeats[rowAddSeat] + 1
 			r2DF$assignedSeats[rowAddSeat] = r2DF$assignedSeats[rowAddSeat] + 1
+			r2DF$quotientSeats[rowAddSeat] = r2DF$quotientSeats[rowAddSeat] + 1
 			r2DF$assignedSeatsByDpto[r2DF$dpto == r2DF$dpto[rowAddSeat]] = r2DF$assignedSeatsByDpto[r2DF$dpto == r2DF$dpto[rowAddSeat]] + 1
 			r2DF$assignedSeatsByParty[r2DF$party == r2DF$party[rowAddSeat]] = r2DF$assignedSeatsByParty[r2DF$party == r2DF$party[rowAddSeat]] + 1
 			r2DF$divisorR2 = (r2DF$assignedSeats+1)
@@ -152,11 +156,15 @@ diputados = function(dataf,totalSeats = 99,regionColumn,partyNamesColumn = 1,vot
 	}
 	
 	# ROUND 3: ASSIGN REST OF OUTSTANDING SEATS
-
+	
 	if (seatsLeftToAssign > 0) {
-			
+	
 		while (seatsLeftToAssign>0) {
-			rowAddSeat = min(which(with(r2DF,(assignedSeatsByDpto<seatsByDpto)&assignedSeatsByParty<overallPartySeats)))
+			rowAddSeat = min(which(with(r2DF,(assignedSeatsByDpto<seatsByDpto)&assignedSeatsByParty<overallPartySeats & quotientSeats ==0)))
+			if (rowAddSeat == Inf) {
+				rowAddSeat = min(which(with(r2DF,(assignedSeatsByDpto<seatsByDpto)&assignedSeatsByParty<overallPartySeats)))
+			}
+			r2DF$quotientSeats[rowAddSeat] = 1
 			r2DF$assignedSeats[rowAddSeat] = r2DF$assignedSeats[rowAddSeat] + 1
 			r2DF$assignedSeatsByDpto[r2DF$dpto == r2DF$dpto[rowAddSeat]] = r2DF$assignedSeatsByDpto[r2DF$dpto == r2DF$dpto[rowAddSeat]] + 1
 			r2DF$assignedSeatsByParty[r2DF$party == r2DF$party[rowAddSeat]] = r2DF$assignedSeatsByParty[r2DF$party == r2DF$party[rowAddSeat]] + 1
@@ -177,25 +185,20 @@ diputados = function(dataf,totalSeats = 99,regionColumn,partyNamesColumn = 1,vot
 	for (i in seq_along(partiesToCheck)) {
 		auxDFR4 = subset(r2DF,party==partiesToCheck[i])
 		notRepresented = which(auxDFR4$assignedSeats==0)
-		if (length(highestNotRepresented)>0) {
+		keepGoing = T
+		while (length(notRepresented)>0 & keepGoing) {
 			highestNotRepresented = min(notRepresented)
 			lowestCandidateTake = max(which((auxDFR4$assignedSeats-auxDFR4$immovableSeats)>0))
-			manyR2 = which((auxDFR4$assignedSeats - auxDFR4$immovableSeats)>1)
-			highestNoR2 = 0
-			if (length(manyR2) ==1) {
-				highestNoR2 = min(which(auxDFR4$assignedSeats == auxDFR4$immovableSeats))
-				rowAddSeat = which(r2DF$party == partiesToCheck[i] & r2DF$dpto == auxDFR4$dpto[highestNoR2])
-				rowTakeSeat = which(r2DF$party == partiesToCheck[i] & r2DF$dpto == auxDFR4$dpto[manyR2])
+			rowAddSeat = which(r2DF$party == partiesToCheck[i] & r2DF$dpto == auxDFR4$dpto[highestNotRepresented])
+			rowTakeSeat = which(r2DF$party == partiesToCheck[i] & r2DF$dpto == auxDFR4$dpto[lowestCandidateTake])
+			if (highestNotRepresented < lowestCandidateTake) {
 				r2DF[rowAddSeat,c("assignedSeats")] = r2DF[rowAddSeat,c("assignedSeats")] + 1
 				r2DF[rowTakeSeat,c("assignedSeats")] = r2DF[rowTakeSeat,c("assignedSeats")] - 1
 				print(paste0(partiesToCheck[i]," seat changed from ",r2DF$dpto[rowTakeSeat]," to ",r2DF$dpto[rowAddSeat]))
-			}
-			if (highestNotRepresented!=highestNoR2 & highestNotRepresented<lowestCandidateTake) {
-				rowAddSeat = which(r2DF$party == partiesToCheck[i] & r2DF$dpto == auxDFR4$dpto[highestNotRepresented])
-				rowTakeSeat = which(r2DF$party == partiesToCheck[i] & r2DF$dpto == auxDFR4$dpto[lowestCandidateTake])
-				r2DF[rowAddSeat,c("assignedSeats")] = r2DF[rowAddSeat,c("assignedSeats")] + 1
-				r2DF[rowTakeSeat,c("assignedSeats")] = r2DF[rowTakeSeat,c("assignedSeats")] - 1
-				print(paste0(partiesToCheck[i]," seat changed from ",r2DF$dpto[rowTakeSeat]," to ",r2DF$dpto[rowAddSeat]))
+				auxDFR4 = subset(r2DF,party==partiesToCheck[i])
+				notRepresented = which(auxDFR4$assignedSeats==0)}
+			else {
+				keepGoing = F
 			}
 		}
 	}
