@@ -13,46 +13,41 @@ data2019 = data2019[,c(3,14:ncol(data2019))] # keep relevant columns
 
 data2019melted = melt(data2019)
 colnames(data2019melted) = c("dpto","party","votesPartyDpto")
+data2019melted$party = gsub("\\."," ",data2019melted$party)
+data2019melted$party = substr(data2019melted$party,nchar("Partido ")+1,nchar(data2019melted$party))
 
 dataByDepto2019 = aggregate(votesPartyDpto~dpto + party,data2019melted,sum)
-dataVotesTotalByParty = aggregate(votesPartyDpto~party,dataByDepto2019,sum)
+dataVotesTotalByParty2019 = aggregate(votesPartyDpto~party,dataByDepto2019,sum)
 
 # distribucion senado
 
-#  uniqueParties
-#  [1] Partido.Frente.Amplio                   
-#  [2] Partido.Nacional                        
-#  [3] Partido.Colorado                        
-#  [4] Partido.Independiente                   
-#  [5] Partido.Asamblea.Popular                
-#  [6] Partido.de.los.Trabajadores             
-#  [7] Partido.Ecologista.Radical.Intransigente
-#  [8] Partido.de.la.Gente                     
-#  [9] Partido.Verde.Animalista                
-# [10] Partido.Digital                         
-# [11] Partido.Cabildo.Abierto
-colsGraph = c(rgb(.2,.2,1),rgb(.3,1,1),rgb(1,.2,.2),rgb(.6,.1,.6),rgb(.5,.1,.1),NA,rgb(.4,.9,.4),rgb(.2,.9,.2),rgb(.5,1,.5),NA,rgb(.9,.9,.05))
-orderGraph = c(3,9,8,7,2,1,4,10,5,6,11)
-
-senado(dataVotesTotalByParty,30,printGraph=T,colsGraph = colsGraph,orderGraph = orderGraph)
+# unique(dataVotesTotalByParty2019$party)
+#  [1] "Asamblea Popular"                 "Cabildo Abierto"                 
+#  [3] "Colorado"                         "de la Gente"                     
+#  [5] "de los Trabajadores"              "Digital"                         
+#  [7] "Ecologista Radical Intransigente" "Frente Amplio"                   
+#  [9] "Independiente"                    "Nacional"                        
+# [11] "Verde Animalista" 
 
 
+colsGraph2019 = c(rgb(.5,.1,.1),rgb(.9,.9,.05),rgb(1,.2,.2),rgb(.2,.9,.2),NA,NA,rgb(.4,.9,.4),rgb(.2,.2,1),rgb(.6,.1,.6),rgb(.3,1,1),rgb(.5,1,.5))
+orderGraph2019 = c(2,11,8,10,1,6,5,3,7,9,4)
+
+senado2019 = senado(dataVotesTotalByParty2019,30,printGraph=T,colsGraph2019 = colsGraph2019,orderGraph2019 = orderGraph2019)
 
 # distribucion diputados
 
-seatsByDpto = read.table("data/distributionDiputadosDpto2019.txt",sep="\t",header=T)
+seatsByDpto2019 = read.table("data/distributionDiputadosDpto2019.txt",sep="\t",header=T)
 
-tcd = diputados(dataByDepto2019,regionColumn = "dpto",partyNamesColumn = "party",votesColumn = "votesPartyDpto",externalDeptDistribution = seatsByDpto) 
-
-subset(tcd,party=="Partido.Colorado")
+diputados2019 = diputados(dataByDepto2019,regionColumn = "dpto",partyNamesColumn = "party",votesColumn = "votesPartyDpto",externalDeptDistribution = seatsByDpto2019) 
 
 ### SIMULACION
 
 nSim = 1000
 
-senadoSim = matrix(NA,nSim,11)
-diputadosDptoSim = matrix(NA,nSim,19)
-bancasSim = matrix(NA,nSim,99)
+senadoSim2019 = matrix(NA,nSim,11)
+diputadosDptoSim2019 = matrix(NA,nSim,19)
+bancasSim2019 = matrix(NA,nSim,99)
 
 for (i in 1:nSim) {
 	draw = rnorm(nrow(dataByDepto2019),sd=.3)
@@ -68,34 +63,28 @@ for (i in 1:nSim) {
 	simulatedData$randomVotes = round(simulatedData$randomVotes/simulatedData$scalingFactor)
 	simulatedData$votesPartyDpto = simulatedData$randomVotes 
 	
-	dataVotesTotalByParty = aggregate(votesPartyDpto~party,simulatedData,sum)
+	dataVotesTotalByParty2019 = aggregate(votesPartyDpto~party,simulatedData,sum)
 
-	senadoSim[i,] = senado(dataVotesTotalByParty,30)
+	senadoSim2019[i,] = senado(dataVotesTotalByParty2019,30)
 	
-	auxDiputados = diputados(simulatedData,regionColumn = "dpto",partyNamesColumn = "party",votesColumn = "votesPartyDpto",externalDeptDistribution = seatsByDpto)
+	auxDiputados = invisible(diputados(simulatedData,regionColumn = "dpto",partyNamesColumn = "party",votesColumn = "votesPartyDpto",externalDeptDistribution = seatsByDpto))
 	auxDiputados = subset(auxDiputados,assignedSeats>0)
 	aggAuxDiputados = aggregate(assignedSeats~dpto,auxDiputados,sum)
-	diputadosDptoSim[i,] = aggAuxDiputados[,2]
-	bancasSim[i,] = unlist(sapply(1:nrow(auxDiputados),FUN=function(x) paste(auxDiputados$party[x],auxDiputados$dpto[x],1:auxDiputados$assignedSeats[x],sep="-")))
+	diputadosDptoSim2019[i,] = aggAuxDiputados[,2]
+	bancasSim2019[i,] = unlist(sapply(1:nrow(auxDiputados),FUN=function(x) paste(auxDiputados$party[x],auxDiputados$dpto[x],1:auxDiputados$assignedSeats[x],sep="-")))
 	
 }
 
-for (i in 1:ncol(diputadosDptoSim)) {
-	barplot(table(diputadosDptoSim[,i]),main=aggAuxDiputados[i,1])
-	readline()
-}
 
-# PRINT BARPLOT DE DIPUTADOS POR DEPARTAMENTO PARA CADA Partido
+# PRINT BARPLOT DE DIPUTADOS POR DEPARTAMENTO PARA CADA PARTIDO
 
 uniqueDptos = unique(dataByDepto2019$dpto)
 uniqueParties = unique(dataByDepto2019$party)
-uniquePartiesLabel = gsub("\\."," ",uniqueParties)
-uniquePartiesLabel = substr(uniquePartiesLabel,9,nchar(uniquePartiesLabel))
 
 pdf("casos/graficos/simulacionDiputadosDptoPartidos.pdf",width=9,height=6)
 
 for (i in seq_along(uniqueDptos)) {
-	whichParties = which(sapply(uniqueParties,FUN=function(x) sum(grepl(paste0(x,"-",uniqueDptos[i]),bancasSim)))>0)
+	whichParties = which(sapply(uniqueParties,FUN=function(x) sum(grepl(paste0(x,"-",uniqueDptos[i]),bancasSim2019)))>0)
 	nRowChart = ifelse(length(whichParties)>6,3,2)
 	nColChart = ifelse(length(whichParties)>4,3,2)
 	nCharts = nRowChart*nColChart + 1
@@ -106,17 +95,17 @@ for (i in seq_along(uniqueDptos)) {
 	text(.5,.5,label=toupper(uniqueDptos[i]),cex=2)
 	
 	for (j in whichParties) {
-		tableDptoParty = table(apply(bancasSim,1,FUN=function(x) sum(grepl(paste0(uniqueParties[j],"-",uniqueDptos[i]),x))))
+		tableDptoParty = table(apply(bancasSim2019,1,FUN=function(x) sum(grepl(paste0(uniqueParties[j],"-",uniqueDptos[i]),x))))
 		borderVal = rep(NA,length(tableDptoParty))
-		colVal = rep(adjustcolor(colsGraph[j],alpha.f = .7),length(tableDptoParty))
+		colVal = rep(adjustcolor(colsGraph2019[j],alpha.f = .7),length(tableDptoParty))
 		
 		trueVal = tcd$assignedSeats[tcd$dpto==uniqueDptos[i]&tcd$party==uniqueParties[j]]
 		borderVal[which(names(tableDptoParty)==trueVal)] = 1
-		colVal[which(names(tableDptoParty)==trueVal)] = colsGraph[j]
+		colVal[which(names(tableDptoParty)==trueVal)] = colsGraph2019[j]
 		
 		par(mar=c(5.1,4.1,4.1,2.1))
 
-		barplot(tableDptoParty,col=colVal,border = borderVal,main = uniquePartiesLabel[j])
+		barplot(tableDptoParty,col=colVal,border = borderVal,main = uniqueParties[j])
 			}
 }
 

@@ -1,4 +1,4 @@
-diputados = function(dataf,totalSeats = 99,regionColumn,partyNamesColumn = 1,votesColumn = 2,levelsParty = NULL,invalidVotesRows = NULL,printGraph = F,saveGraph = F,allowDiffDepts = F,externalDeptDistribution = NULL,minDipDept = 2) {
+diputados = function(dataf,totalSeats = 99,regionColumn,partyNamesColumn = 1,votesColumn = 2,levelsParty = NULL,invalidVotesRows = NULL,printGraph = F,saveGraph = F,allowDiffDepts = F,externalDeptDistribution = NULL,minDipDept = 2,detail = F) {
 
 # https://portal.factum.uy/ediciones-anteriores/estpol/sispol/sip90001.html
 # sección 3.2
@@ -195,6 +195,8 @@ diputados = function(dataf,totalSeats = 99,regionColumn,partyNamesColumn = 1,vot
 				r2DF[rowAddSeat,c("assignedSeats")] = r2DF[rowAddSeat,c("assignedSeats")] + 1
 				r2DF[rowTakeSeat,c("assignedSeats")] = r2DF[rowTakeSeat,c("assignedSeats")] - 1
 				print(paste0(partiesToCheck[i]," seat changed from ",r2DF$dpto[rowTakeSeat]," to ",r2DF$dpto[rowAddSeat]))
+				r2DF$competingQuotient = ifelse(r2DF$votesPartyDpto==0,0,ifelse(r2DF$assignedSeats==0,r2DF$votesPartyDpto,r2DF$votesPartyDpto/(r2DF$assignedSeats)))
+				r2DF = r2DF[order(r2DF$competingQuotient,decreasing=T),]
 				auxDFR4 = subset(r2DF,party==partiesToCheck[i])
 				notRepresented = which(auxDFR4$assignedSeats==0)}
 			else {
@@ -204,10 +206,17 @@ diputados = function(dataf,totalSeats = 99,regionColumn,partyNamesColumn = 1,vot
 	}
 	
 	r2DF$competingQuotient = ifelse(r2DF$votesPartyDpto==0,0,ifelse(r2DF$assignedSeats==0,r2DF$votesPartyDpto,r2DF$votesPartyDpto/(r2DF$assignedSeats)))
+	
+	r2DF = r2DF[order(r2DF$votesPartyDpto,decreasing=T),]
+	r2DF = r2DF[order(r2DF$dpto),]
 
-	
-	
-	return(r2DF)
-	
+
+	if (detail) {
+		return(r2DF)
+	} else {
+		outDF = subset(r2DF,assignedSeats>0)
+		outDF = outDF[,c("party","dpto","votesPartyDpto","assignedSeats")]
+		return(outDF)
+	}
 }
 
