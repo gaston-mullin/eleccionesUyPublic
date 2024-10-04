@@ -1,4 +1,4 @@
-diputados = function(dataf,totalSeats = 99,regionColumn,partyNamesColumn = 1,votesColumn = 2,levelsParty = NULL,invalidVotesRows = NULL,printGraph = F,saveGraph = F,allowDiffDepts = F,externalDeptDistribution = NULL,minDipDept = 2,detail = F) {
+diputados = function(dataf,totalSeats = 99,regionColumn,partyNamesColumn = 1,votesColumn = 2,levelsParty = NULL,invalidVotesRows = NULL,printGraph = F,saveGraph = F,allowDiffDepts = F,externalDeptDistribution = NULL,totalHabilitados = NULL,minDipDept = 2,detail = F) {
 
 # https://portal.factum.uy/ediciones-anteriores/estpol/sispol/sip90001.html
 # sección 3.2
@@ -73,19 +73,24 @@ diputados = function(dataf,totalSeats = 99,regionColumn,partyNamesColumn = 1,vot
 			stop("Some department name in the external seat distribution column1 does not match the department name in the votes data")
 		}
 	} else {
-		votesByDepartment = aggregate(dataf[,"votesPartyDpto"], by = list(dataf[, "dpto"]), FUN = sum)
-		seatsByDepartmentR1 = dhondt(votesByDepartment,totalSeats)
+		if (is.null(totalHabilitados)) {
+			warning("Number of voters per department not provided, will use total casted votes as proxy")
+			votersByDepartment = aggregate(dataf[,"votesPartyDpto"], by = list(dataf[, "dpto"]), FUN = sum)
+		} else {
+			votersByDepartment = totalHabilitados
+		}
+			seatsByDepartmentR1 = dhondt(votersByDepartment,totalSeats)
 			if (any(seatsByDepartmentR1<minDipDept)) {
 				seatsByDepartmentRound2 = seatsByDepartmentR1
 				seatsByDepartmentRound2[which(seatsByDepartmentR1<minDipDept)] = minDipDept
 				seatsAvailableRound2 = totalSeats - sum(seatsByDepartmentR1<minDipDept)*minDipDept
-				subsetDataRound2 = votesByDepartment[!(seatsByDepartmentR1<minDipDept),]
+				subsetDataRound2 = votersByDepartment[!(seatsByDepartmentR1<minDipDept),]
 				seatsByDepartmentOnSubsetRound2 = dhondt(subsetDataRound2,seatsAvailableRound2)
-				seatsAvailableRound2[!(seatsByDepartmentR1<minDipDept),2] = seatsByDepartmentOnSubsetRound2
-				seatsByDepartment = seatsAvailableRound2
-				seatsByDepartmentDF = cbind(votesByDepartment[,1],seatsByDepartment)
-			}
+				seatsByDepartmentRound2[!(seatsByDepartmentR1<minDipDept)] = seatsByDepartmentOnSubsetRound2
+				seatsByDepartmentDF = data.frame(dpto = votersByDepartment[,1],seats = seatsByDepartmentRound2)
+				}
 	}
+	
 	
 	colnames(seatsByDepartmentDF) = c("dpto","seatsByDpto")
 	

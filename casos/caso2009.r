@@ -29,11 +29,14 @@ senado2009 = senado(dataVotesTotalByParty2009,30,printGraph=T,colsGraph = colsGr
 
 seatsByDpto2009 = read.table("data/distributionDiputadosDpto2009.txt",sep="\t",header=T)
 
-diputados2009 = diputados(data2009,regionColumn = "dpto",partyNamesColumn = "party",votesColumn = "votesPartyDpto",externalDeptDistribution = seatsByDpto2009,detail=T) 
+diputados2009 = diputados(data2009,regionColumn = "dpto",partyNamesColumn = "party",votesColumn = "votesPartyDpto",externalDeptDistribution = seatsByDpto2009,detail=T)
+
+save(diputados2009,file="simulaciones/asignacionDiputados2009.rdata") 
 
 ### SIMULACION
 
 nSim = 1000
+set.seed(598)
 
 senadoSim2009 = matrix(NA,nSim,length(unique(dataVotesTotalByParty2009$party)))
 diputadosDptoSim2009 = matrix(NA,nSim,19)
@@ -57,7 +60,7 @@ for (i in 1:nSim) {
 
 	senadoSim2009[i,] = senado(dataVotesTotalByParty2009,30)
 	
-	auxDiputados = invisible(diputados(simulatedData,regionColumn = "dpto",partyNamesColumn = "party",votesColumn = "votesPartyDpto",externalDeptDistribution = seatsByDpto))
+	auxDiputados = invisible(diputados(simulatedData,regionColumn = "dpto",partyNamesColumn = "party",votesColumn = "votesPartyDpto",externalDeptDistribution = seatsByDpto2009))
 	auxDiputados = subset(auxDiputados,assignedSeats>0)
 	aggAuxDiputados = aggregate(assignedSeats~dpto,auxDiputados,sum)
 	diputadosDptoSim2009[i,] = aggAuxDiputados[,2]
@@ -65,6 +68,7 @@ for (i in 1:nSim) {
 	
 }
 
+save(bancasSim2009,file="simulaciones/simDiputados2009.rdata")
 
 # PRINT BARPLOT DE DIPUTADOS POR DEPARTAMENTO PARA CADA PARTIDO
 

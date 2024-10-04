@@ -1,0 +1,20 @@
+dpto	seats
+artigas	2
+canelones	13
+cerro largo	2
+colonia	4
+durazno	2
+flores	2
+florida	2
+lavalleja	2
+maldonado	4
+montevideo	44
+paysandu	3
+rio negro	2
+rivera	3
+rocha	2
+salto	3
+san jose	3
+soriano	2
+tacuarembo	2
+treinta y tres	2

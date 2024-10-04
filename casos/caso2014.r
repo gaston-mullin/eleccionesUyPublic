@@ -42,9 +42,12 @@ seatsByDpto2014 = read.table("data/distributionDiputadosDpto2014.txt",sep="\t",h
 
 diputados2014 = diputados(data2014,regionColumn = "dpto",partyNamesColumn = "party",votesColumn = "votesPartyDpto",externalDeptDistribution = seatsByDpto2014,detail=T) 
 
+save(diputados2014,file="simulaciones/asignacionDiputados2014.rdata") 
+
 ### SIMULACION
 
 nSim = 1000
+set.seed(598)
 
 senadoSim2014 = matrix(NA,nSim,7)
 diputadosDptoSim2014 = matrix(NA,nSim,19)
@@ -68,13 +71,15 @@ for (i in 1:nSim) {
 
 	senadoSim2014[i,] = senado(dataVotesTotalByParty2014,30)
 	
-	auxDiputados = invisible(diputados(simulatedData,regionColumn = "dpto",partyNamesColumn = "party",votesColumn = "votesPartyDpto",externalDeptDistribution = seatsByDpto))
+	auxDiputados = invisible(diputados(simulatedData,regionColumn = "dpto",partyNamesColumn = "party",votesColumn = "votesPartyDpto",externalDeptDistribution = seatsByDpto2014))
 	auxDiputados = subset(auxDiputados,assignedSeats>0)
 	aggAuxDiputados = aggregate(assignedSeats~dpto,auxDiputados,sum)
 	diputadosDptoSim2014[i,] = aggAuxDiputados[,2]
 	bancasSim2014[i,] = unlist(sapply(1:nrow(auxDiputados),FUN=function(x) paste(auxDiputados$party[x],auxDiputados$dpto[x],1:auxDiputados$assignedSeats[x],sep="-")))
 	
 }
+
+save(bancasSim2014,file="simulaciones/simDiputados2014.rdata")
 
 
 # PRINT BARPLOT DE DIPUTADOS POR DEPARTAMENTO PARA CADA PARTIDO
